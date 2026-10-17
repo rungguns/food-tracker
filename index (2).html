@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>My Health — Food & Medicine Tracker</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--bg:#f4f8f7;--card:#fff;--text:#18302b;--muted:#70807c;--accent:#2c9c87;--accent2:#e8f5f1;--danger:#d95b5b;--line:#e1e9e6}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:var(--text)}
+button,input,select,textarea{font:inherit}button{cursor:pointer;border:0}.hidden{display:none!important}
+header{background:linear-gradient(135deg,#173f38,#2c9c87);color:white;padding:22px 5vw;display:flex;justify-content:space-between;align-items:center;gap:20px}
+header h1{margin:0;font-size:25px}header small{opacity:.85}
+.wrap{max-width:1180px;margin:24px auto;padding:0 18px}
+nav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:22px}
+nav button{background:white;border:1px solid var(--line);padding:10px 15px;border-radius:12px;color:var(--text)}
+nav button.active{background:var(--accent);color:white;border-color:var(--accent)}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 5px 20px #19352a08}
+.card h2,.card h3{margin-top:0}.metric{font-size:28px;font-weight:800}.muted{color:var(--muted);font-size:13px}
+.bar{height:9px;background:#edf2f0;border-radius:9px;overflow:hidden}.bar i{display:block;height:100%;background:var(--accent);border-radius:9px}
+.form{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.form .full{grid-column:1/-1}
+label{font-size:13px;font-weight:700}.field{display:flex;flex-direction:column;gap:6px}
+input,select,textarea{border:1px solid var(--line);border-radius:11px;padding:10px;background:#fff;color:var(--text)}textarea{min-height:100px;resize:vertical}
+.btn{background:var(--accent);color:white;border-radius:11px;padding:10px 15px}.btn.secondary{background:var(--accent2);color:#176b5b}.btn.danger{background:#fff0f0;color:#b63f3f}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}.list{display:flex;flex-direction:column;gap:10px}.item{padding:12px;border:1px solid var(--line);border-radius:13px;background:#fbfdfc}
+.calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}.calhead{font-size:12px;color:var(--muted);text-align:center;padding:5px}.day{min-height:70px;background:white;border:1px solid var(--line);border-radius:10px;padding:7px;text-align:left}.day.selected{outline:2px solid var(--accent)}.day.has{background:var(--accent2)}.dot{font-size:10px;color:var(--accent);margin-top:8px}
+.auth{max-width:430px;margin:60px auto}.tabs{display:flex;gap:8px;margin-bottom:15px}.tabs button{flex:1;padding:10px;border-radius:10px;background:#edf5f2}.tabs button.active{background:var(--accent);color:#fff}
+img.food{width:90px;height:90px;object-fit:cover;border-radius:12px}.pill{padding:5px 9px;border-radius:99px;background:var(--accent2);color:#176b5b;font-size:12px}
+@media(max-width:800px){.grid{grid-template-columns:repeat(2,1fr)}.grid2,.form{grid-template-columns:1fr}.day{min-height:58px}header{align-items:flex-start;flex-direction:column}}
+</style>
+</head>
+<body>
+<header>
+  <div><h1>🌱 My Health</h1><small>Food · Nutrition · Diary · Medicine</small></div>
+  <div id="userBox"></div>
+</header>
+
+<main class="wrap">
+<section id="auth" class="auth card">
+  <h2>Welcome 👋</h2>
+  <p class="muted">Sign in to keep your food diary and medicine records synced across devices.</p>
+  <div class="tabs"><button id="loginTab" class="active">Login</button><button id="signupTab">Create account</button></div>
+  <div class="form">
+    <div class="field full"><label>Email</label><input id="email" type="email"></div>
+    <div class="field full"><label>Password</label><input id="password" type="password"></div>
+    <button class="btn full" id="authBtn">Login</button>
+  </div>
+  <p id="authMsg" class="muted"></p>
+</section>
+
+<section id="app" class="hidden">
+<nav>
+  <button data-page="home" class="active">🏠 Home</button>
+  <button data-page="food">🍽 Food</button>
+  <button data-page="diary">📔 Diary</button>
+  <button data-page="medicine">💊 Medicine</button>
+  <button data-page="plan">🥗 Meal Plan</button>
+  <button data-page="settings">⚙️ Settings</button>
+</nav>
+
+<div id="home" class="page"></div>
+<div id="food" class="page hidden"></div>
+<div id="diary" class="page hidden"></div>
+<div id="medicine" class="page hidden"></div>
+<div id="plan" class="page hidden"></div>
+<div id="settings" class="page hidden"></div>
+</section>
+</main>
+
+<script>
+const SUPABASE_URL="YOUR_SUPABASE_PROJECT_URL";
+const SUPABASE_ANON_KEY="YOUR_SUPABASE_PUBLISHABLE_KEY";
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+let user=null, selectedDate=localDate(), foodCache=[], medsCache=[], authMode="login", calMonth=new Date();
+
+function localDate(d=new Date()){return new Intl.DateTimeFormat("en-CA",{year:"numeric",month:"2-digit",day:"2-digit"}).format(d)}
+function esc(x=""){return String(x).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
+function money(x){return Number(x||0).toFixed(0)}
+function msg(el,t){el.textContent=t}
+
+async function boot(){
+  const {data:{session}}=await sb.auth.getSession();
+  user=session?.user||null; renderAuth();
+  sb.auth.onAuthStateChange((_e,s)=>{user=s?.user||null;renderAuth();if(user)loadAll()});
+}
+function renderAuth(){
+  document.getElementById("auth").classList.toggle("hidden",!!user);
+  document.getElementById("app").classList.toggle("hidden",!user);
+  document.getElementById("userBox").innerHTML=user?`<span>${esc(user.email)}</span> <button class="btn secondary" onclick="logout()">Logout</button>`:"";
+}
+async function logout(){await sb.auth.signOut();location.reload()}
+document.getElementById("loginTab").onclick=()=>{authMode="login";document.getElementById("loginTab").classList.add("active");document.getElementById("signupTab").classList.remove("active");document.getElementById("authBtn").textContent="Login"}
+document.getElementById("signupTab").onclick=()=>{authMode="signup";document.getElementById("signupTab").classList.add("active");document.getElementById("loginTab").classList.remove("active");document.getElementById("authBtn").textContent="Create account"}
+document.getElementById("authBtn").onclick=async()=>{
+  const email=document.getElementById("email").value.trim(), password=document.getElementById("password").value;
+  const el=document.getElementById("authMsg"); el.textContent="Working...";
+  const r=authMode==="login"?await sb.auth.signInWithPassword({email,password}):await sb.auth.signUp({email,password});
+  el.textContent=r.error?r.error.message:(authMode==="signup"?"Account created. Check your email if confirmation is enabled.":"Logged in.");
+  if(!r.error && authMode==="login") loadAll();
+};
+
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{
+ document.querySelectorAll("nav button").forEach(x=>x.classList.remove("active"));b.classList.add("active");
+ document.querySelectorAll(".page").forEach(x=>x.classList.add("hidden"));document.getElementById(b.dataset.page).classList.remove("hidden");
+ if(b.dataset.page==="home")renderHome(); if(b.dataset.page==="food")renderFood();if(b.dataset.page==="diary")renderDiary();if(b.dataset.page==="medicine")renderMedicine();if(b.dataset.page==="plan")renderPlan();if(b.dataset.page==="settings")renderSettings();
+});
+
+async function loadAll(){
+ await Promise.all([loadFoods(),loadEntries(),loadMeds(),loadDiary(),loadProfile(),loadPlans()]);
+ renderHome();
+}
+async function loadFoods(){const r=await sb.from("health_foods").select("*").order("name");foodCache=r.data||[]}
+async function loadEntries(){const r=await sb.from("health_food_entries").select("*").eq("user_id",user.id).order("created_at",{ascending:false});window.entries=r.data||[]}
+async function loadMeds(){const r=await sb.from("health_medicines").select("*").eq("active",true).order("reminder_time");medsCache=r.data||[]}
+async function loadDiary(){const r=await sb.from("health_diary").select("*").eq("user_id",user.id);window.diaries=r.data||[]}
+async function loadProfile(){const r=await sb.from("health_profiles").select("*").eq("user_id",user.id).maybeSingle();window.profile=r.data||{}}
+async function loadPlans(){const r=await sb.from("health_meal_plans").select("*").eq("user_id",user.id).order("plan_date");window.plans=r.data||[]}
+
+function totals(date=selectedDate){
+ const a=(window.entries||[]).filter(x=>x.entry_date===date);
+ return {cal:a.reduce((s,x)=>s+Number(x.calories||0),0),pro:a.reduce((s,x)=>s+Number(x.protein_g||0),0),carb:a.reduce((s,x)=>s+Number(x.carbs_g||0),0),fat:a.reduce((s,x)=>s+Number(x.fat_g||0),0)};
+}
+function target(k,def){return Number(window.profile?.[k]||def)}
+function renderHome(){
+ const t=totals(), calT=target("calorie_target",2000), proT=target("protein_target",100);
+ document.getElementById("home").innerHTML=`
+ <div class="row"><div><h2>Good day 👋</h2><p class="muted">${selectedDate}</p></div><button class="btn" onclick="quickFood()">＋ Add food</button></div>
+ <div class="grid">
+  ${metric("🔥 Calories",t.cal,calT,"kcal")}
+  ${metric("🥩 Protein",t.pro,proT,"g")}
+  ${metric("🍚 Carbs",t.carb,target("carbs_target",250),"g")}
+  ${metric("🥑 Fat",t.fat,target("fat_target",70),"g")}
+ </div>
+ <div class="grid2" style="margin-top:18px">
+  <div class="card"><h3>💊 Today's medicine</h3><div id="todayMeds">${medsCache.length?medsCache.map(m=>medRow(m)).join(""):"<p class='muted'>No medicine reminders yet.</p>"}</div></div>
+  <div class="card"><h3>🍽 Today's food</h3><div class="list">${(window.entries||[]).filter(x=>x.entry_date===selectedDate).slice(0,6).map(x=>`<div class="item row"><span><b>${esc(x.food_name)}</b><br><span class="muted">${esc(x.meal_type)} · ${x.quantity} ${esc(x.serving_label)}</span></span><span>${money(x.calories)} kcal</span></div>`).join("")||"<p class='muted'>Nothing recorded yet.</p>"}</div></div>
+ </div>`;
+}
+function metric(name,val,max,unit){let p=Math.min(100,(val/max)*100);return `<div class="card"><div class="muted">${name}</div><div class="metric">${money(val)} <small>${unit}</small></div><div class="muted">Target ${money(max)} ${unit}</div><div class="bar"><i style="width:${p}%"></i></div></div>`}
+function medRow(m){
+ const log=(window.medLogs||[]).find(x=>x.medicine_id===m.id&&x.taken_date===selectedDate);
+ return `<div class="item row"><span><b>💊 ${esc(m.name)}</b><br><span class="muted">${esc(m.dosage||"")} · ${m.reminder_time||""}</span></span><button class="btn secondary" onclick="takeMed('${m.id}')">${log?.status==="taken"?"✓ Taken":"Mark taken"}</button></div>`;
+}
+async function takeMed(id){
+ const r=await sb.from("health_medication_logs").upsert({user_id:user.id,medicine_id:id,taken_date:selectedDate,taken_at:new Date().toISOString(),status:"taken"},{onConflict:"user_id,medicine_id,taken_date"});
+ if(r.error)alert(r.error.message); else {await loadMedLogs();renderHome();renderMedicine()}
+}
+async function loadMedLogs(){const r=await sb.from("health_medication_logs").select("*").eq("user_id",user.id);window.medLogs=r.data||[]}
+
+function renderFood(){
+ document.getElementById("food").innerHTML=`
+ <div class="grid2">
+  <div class="card"><h2>＋ Add food</h2>
+   <div class="form">
+    <div class="field"><label>Food name</label><input id="fName" placeholder="e.g. Chicken rice"></div>
+    <div class="field"><label>Meal</label><select id="fMeal"><option>Breakfast</option><option>Lunch</option><option>Dinner</option><option>Snack</option><option>Other</option></select></div>
+    <div class="field"><label>Date</label><input id="fDate" type="date" value="${selectedDate}"></div>
+    <div class="field"><label>Quantity</label><input id="fQty" type="number" value="1" min=".01" step=".01"></div>
+    <div class="field"><label>Serving label</label><input id="fServing" value="serving" placeholder="bowl / plate / g"></div>
+    <div class="field"><label>Calories per serving</label><input id="fCal" type="number" value="0"></div>
+    <div class="field"><label>Protein g</label><input id="fPro" type="number" value="0"></div>
+    <div class="field"><label>Carbs g</label><input id="fCarb" type="number" value="0"></div>
+    <div class="field"><label>Fat g</label><input id="fFat" type="number" value="0"></div>
+    <div class="field"><label>Sugar g</label><input id="fSugar" type="number" value="0"></div>
+    <div class="field"><label>Fiber g</label><input id="fFiber" type="number" value="0"></div>
+    <div class="field"><label>Sodium mg</label><input id="fSodium" type="number" value="0"></div>
+    <div class="field full"><label>Notes</label><textarea id="fNotes" placeholder="How did you feel? Homemade? Restaurant?"></textarea></div>
+    <button class="btn full" onclick="addFoodEntry()">Save food record</button>
+   </div>
+  </div>
+  <div class="card"><h2>⭐ My custom foods</h2>
+   <p class="muted">Save foods you eat often so you can reuse their nutrition later.</p>
+   <button class="btn secondary" onclick="saveCurrentAsFood()">Save current form as custom food</button>
+   <div class="list" style="margin-top:12px">${foodCache.map(f=>`<div class="item row"><span><b>${esc(f.name)}</b><br><span class="muted">${f.serving_size} · ${money(f.calories)} kcal · ${money(f.protein_g)}g protein</span></span><button class="btn secondary" onclick="useFood('${f.id}')">Use</button></div>`).join("")||"<p class='muted'>No custom foods.</p>"}</div>
+  </div>
+ </div>
+ <div class="card" style="margin-top:18px"><h2>Recent records</h2><div class="list">${(window.entries||[]).slice(0,20).map(x=>`<div class="item row"><span><b>${esc(x.food_name)}</b><br><span class="muted">${x.entry_date} · ${esc(x.meal_type)} · ${x.quantity} ${esc(x.serving_label)}</span></span><span>${money(x.calories)} kcal</span><button class="btn danger" onclick="deleteEntry('${x.id}')">Delete</button></div>`).join("")}</div></div>`;
+}
+function val(id){return document.getElementById(id).value}
+async function addFoodEntry(){
+ const qty=Number(val("fQty")||1), payload={user_id:user.id,entry_date:val("fDate"),meal_type:val("fMeal"),food_name:val("fName").trim(),quantity:qty,serving_label:val("fServing"),calories:Number(val("fCal")||0)*qty,protein_g:Number(val("fPro")||0)*qty,carbs_g:Number(val("fCarb")||0)*qty,fat_g:Number(val("fFat")||0)*qty,sugar_g:Number(val("fSugar")||0)*qty,fiber_g:Number(val("fFiber")||0)*qty,sodium_mg:Number(val("fSodium")||0)*qty,notes:val("fNotes")};
+ if(!payload.food_name)return alert("Please enter a food name.");
+ const r=await sb.from("health_food_entries").insert(payload);if(r.error)return alert(r.error.message);await loadEntries();selectedDate=payload.entry_date;renderFood();renderHome();
+}
+async function deleteEntry(id){if(!confirm("Delete this food record?"))return;await sb.from("health_food_entries").delete().eq("id",id).eq("user_id",user.id);await loadEntries();renderFood();renderHome()}
+function useFood(id){const f=foodCache.find(x=>x.id===id);if(!f)return;document.getElementById("fName").value=f.name;document.getElementById("fServing").value=f.serving_size;document.getElementById("fCal").value=f.calories;document.getElementById("fPro").value=f.protein_g;document.getElementById("fCarb").value=f.carbs_g;document.getElementById("fFat").value=f.fat_g;document.getElementById("fSugar").value=f.sugar_g;document.getElementById("fFiber").value=f.fiber_g;document.getElementById("fSodium").value=f.sodium_mg}
+async function saveCurrentAsFood(){
+ const name=val("fName").trim();if(!name)return alert("Enter food name first.");
+ const p={user_id:user.id,name,serving_size:val("fServing"),calories:Number(val("fCal")||0),protein_g:Number(val("fPro")||0),carbs_g:Number(val("fCarb")||0),fat_g:Number(val("fFat")||0),sugar_g:Number(val("fSugar")||0),fiber_g:Number(val("fFiber")||0),sodium_mg:Number(val("fSodium")||0)};
+ const r=await sb.from("health_foods").insert(p);if(r.error)return alert(r.error.message);await loadFoods();renderFood()
+}
+function quickFood(){document.querySelector('[data-page="food"]').click()}
+
+function renderDiary(){
+ const y=calMonth.getFullYear(),m=calMonth.getMonth(),first=new Date(y,m,1),days=new Date(y,m+1,0).getDate(),start=first.getDay();
+ let cells=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map(x=>`<div class="calhead">${x}</div>`).join("");
+ for(let i=0;i<start;i++)cells+="<div></div>";
+ for(let d=1;d<=days;d++){let ds=localDate(new Date(y,m,d));let has=(window.entries||[]).some(x=>x.entry_date===ds)||(window.diaries||[]).some(x=>x.diary_date===ds);cells+=`<button class="day ${ds===selectedDate?"selected":""} ${has?"has":""}" onclick="selectDay('${ds}')"><b>${d}</b>${has?"<div class='dot'>● record</div>":""}</button>`}
+ const diary=(window.diaries||[]).find(x=>x.diary_date===selectedDate)||{};
+ const foods=(window.entries||[]).filter(x=>x.entry_date===selectedDate);
+ document.getElementById("diary").innerHTML=`
+ <div class="card"><div class="row"><button class="btn secondary" onclick="moveMonth(-1)">←</button><h2>${calMonth.toLocaleString("en",{month:"long",year:"numeric"})}</h2><button class="btn secondary" onclick="moveMonth(1)">→</button></div><div class="calendar">${cells}</div></div>
+ <div class="grid2" style="margin-top:18px">
+  <div class="card"><h2>📔 ${selectedDate}</h2><div class="field"><label>Title</label><input id="dTitle" value="${esc(diary.title||"")}"></div><div class="field" style="margin-top:10px"><label>Food diary</label><textarea id="dContent" placeholder="Write about what you ate, mood, hunger, energy...">${esc(diary.content||"")}</textarea></div><button class="btn" style="margin-top:10px" onclick="saveDiary()">Save diary</button></div>
+  <div class="card"><h2>🍽 Food of the day</h2><div class="list">${foods.map(x=>`<div class="item"><b>${esc(x.food_name)}</b><br><span class="muted">${esc(x.meal_type)} · ${x.quantity} ${esc(x.serving_label)}</span><br>${money(x.calories)} kcal · ${money(x.protein_g)}g protein</div>`).join("")||"<p class='muted'>No food records for this date.</p>"}</div></div>
+ </div>`;
+}
+function selectDay(d){selectedDate=d;renderDiary();renderHome()}
+function moveMonth(n){calMonth.setMonth(calMonth.getMonth()+n);renderDiary()}
+async function saveDiary(){
+ const payload={user_id:user.id,diary_date:selectedDate,title:val("dTitle"),content:val("dContent")};
+ const r=await sb.from("health_diary").upsert(payload,{onConflict:"user_id,diary_date"});if(r.error)alert(r.error.message);else{await loadDiary();renderDiary()}
+}
+
+function renderMedicine(){
+ document.getElementById("medicine").innerHTML=`
+ <div class="grid2">
+ <div class="card"><h2>＋ Add medicine</h2><p class="muted">Use this for reminders and tracking. Follow your clinician/pharmacist's instructions for actual dosing.</p>
+ <div class="form">
+ <div class="field"><label>Medicine / supplement name</label><input id="mName"></div>
+ <div class="field"><label>Dosage label</label><input id="mDose" placeholder="e.g. 1 tablet"></div>
+ <div class="field"><label>Reminder time</label><input id="mTime" type="time"></div>
+ <div class="field"><label>Frequency</label><select id="mFreq"><option>Daily</option><option>As needed</option><option>Weekly</option></select></div>
+ <div class="field"><label>Start date</label><input id="mStart" type="date" value="${selectedDate}"></div>
+ <div class="field"><label>End date</label><input id="mEnd" type="date"></div>
+ <div class="field full"><label>Instructions</label><textarea id="mInstr" placeholder="Your own reminder notes"></textarea></div>
+ <button class="btn full" onclick="addMedicine()">Save medicine</button></div></div>
+ <div class="card"><h2>💊 Active medicines</h2><div class="list">${medsCache.map(m=>`<div class="item"><div class="row"><span><b>${esc(m.name)}</b><br><span class="muted">${esc(m.dosage||"")} · ${m.reminder_time||"No time"} · ${esc(m.frequency)}</span></span><button class="btn danger" onclick="deactivateMed('${m.id}')">Stop</button></div><div style="margin-top:8px">${medRow(m)}</div></div>`).join("")||"<p class='muted'>No medicines added.</p>"}</div></div>
+ </div>`;
+}
+async function addMedicine(){
+ const p={user_id:user.id,name:val("mName").trim(),dosage:val("mDose"),reminder_time:val("mTime")||null,frequency:val("mFreq"),start_date:val("mStart"),end_date:val("mEnd")||null,instructions:val("mInstr"),active:true};
+ if(!p.name)return alert("Enter a medicine name.");const r=await sb.from("health_medicines").insert(p);if(r.error)return alert(r.error.message);await loadMeds();await loadMedLogs();renderMedicine();renderHome();
+}
+async function deactivateMed(id){await sb.from("health_medicines").update({active:false}).eq("id",id).eq("user_id",user.id);await loadMeds();renderMedicine()}
+async function requestNotifications(){if(!("Notification"in window))return alert("This browser does not support notifications.");const p=await Notification.requestPermission();alert("Notification permission: "+p)}
+
+function renderPlan(){
+ document.getElementById("plan").innerHTML=`
+ <div class="card"><h2>🥗 Personal meal plan</h2><p class="muted">Set your own targets and write a plan. This version keeps the plan user-controlled instead of making medical or dietary diagnoses.</p>
+ <div class="grid2"><div><h3>My targets</h3><div class="form">
+ <div class="field"><label>Calories/day</label><input id="pCal" type="number" value="${target("calorie_target",2000)}"></div>
+ <div class="field"><label>Protein g/day</label><input id="pPro" type="number" value="${target("protein_target",100)}"></div>
+ <div class="field"><label>Carbs g/day</label><input id="pCarb" type="number" value="${target("carbs_target",250)}"></div>
+ <div class="field"><label>Fat g/day</label><input id="pFat" type="number" value="${target("fat_target",70)}"></div>
+ </div><button class="btn" style="margin-top:12px" onclick="saveTargets()">Save targets</button></div>
+ <div><h3>Add plan item</h3><div class="form"><div class="field"><label>Date</label><input id="plDate" type="date" value="${selectedDate}"></div><div class="field"><label>Meal</label><select id="plMeal"><option>Breakfast</option><option>Lunch</option><option>Dinner</option><option>Snack</option></select></div><div class="field"><label>Title</label><input id="plTitle" placeholder="e.g. High-protein breakfast"></div><div class="field"><label>Calories</label><input id="plCal" type="number" value="0"></div><div class="field full"><label>Description</label><textarea id="plDesc"></textarea></div></div><button class="btn" style="margin-top:12px" onclick="addPlan()">Add to plan</button></div></div></div>
+ <div class="card" style="margin-top:18px"><h3>Plan items</h3><div class="list">${(window.plans||[]).map(p=>`<div class="item"><b>${p.plan_date} · ${esc(p.meal_type)} · ${esc(p.title)}</b><br><span class="muted">${esc(p.description||"")} · ${money(p.calories)} kcal</span></div>`).join("")||"<p class='muted'>No plan items yet.</p>"}</div></div>`;
+}
+async function saveTargets(){
+ const p={user_id:user.id,calorie_target:Number(val("pCal")||0),protein_target:Number(val("pPro")||0),carbs_target:Number(val("pCarb")||0),fat_target:Number(val("pFat")||0)};
+ const r=await sb.from("health_profiles").upsert(p,{onConflict:"user_id"});if(r.error)alert(r.error.message);else{await loadProfile();renderPlan();renderHome()}
+}
+async function addPlan(){
+ const p={user_id:user.id,plan_date:val("plDate"),meal_type:val("plMeal"),title:val("plTitle").trim(),description:val("plDesc"),calories:Number(val("plCal")||0)};
+ if(!p.title)return alert("Enter a plan title.");const r=await sb.from("health_meal_plans").insert(p);if(r.error)alert(r.error.message);else{await loadPlans();renderPlan()}
+}
+function renderSettings(){
+ document.getElementById("settings").innerHTML=`<div class="card"><h2>⚙️ Settings</h2><div class="field"><label>Display name</label><input id="displayName" value="${esc(window.profile?.display_name||"")}"></div><button class="btn" style="margin-top:10px" onclick="saveDisplayName()">Save</button><hr style="border:0;border-top:1px solid var(--line);margin:20px 0"><h3>🔔 Browser reminders</h3><p class="muted">Allow notifications so the browser can show reminder messages when the app is open.</p><button class="btn secondary" onclick="requestNotifications()">Enable notifications</button><p class="muted" style="margin-top:15px">For reliable phone alarms even when the website is closed, a later version can add a proper PWA/push-notification system.</p></div>`;
+}
+async function saveDisplayName(){const r=await sb.from("health_profiles").upsert({user_id:user.id,display_name:val("displayName")},{onConflict:"user_id"});if(r.error)alert(r.error.message);else{await loadProfile();renderSettings()}}
+async function reminderLoop(){
+ if(!user)return;await loadMedLogs();const now=new Date(), hh=String(now.getHours()).padStart(2,"0"),mm=String(now.getMinutes()).padStart(2,"0"),today=localDate();
+ medsCache.forEach(m=>{if(m.reminder_time?.slice(0,5)===hh+":"+mm){const already=(window.medLogs||[]).find(x=>x.medicine_id===m.id&&x.taken_date===today&&x.status==="taken");if(!already&&"Notification"in window&&Notification.permission==="granted")new Notification("💊 Medicine reminder",{body:`${m.name}${m.dosage?" — "+m.dosage:""}`})}});
+}
+setInterval(reminderLoop,60000);
+
+async function start(){await boot();if(user){await loadAll();await loadMedLogs();renderHome()}}
+start();
+</script>
+</body>
+</html>
