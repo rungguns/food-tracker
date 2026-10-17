@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>My Health</title>
+<style>
+:root{--g:#22a06b;--g2:#55c78e;--bg:#f3faf6;--text:#17352a;--muted:#718079;--line:#dcebe3}
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:var(--bg);color:var(--text)}
+header{background:linear-gradient(135deg,var(--g),var(--g2));color:white;padding:20px}
+.head,nav,main{max-width:1050px;margin:auto}.head{display:flex;justify-content:space-between;align-items:center}
+h1{margin:0}header p{margin:4px 0 0;font-size:13px}nav{display:flex;gap:7px;padding-top:14px;overflow:auto}
+nav button{border:0;background:#ffffff20;color:white;padding:9px 14px;border-radius:10px;white-space:nowrap}
+nav button.on{background:white;color:#176b4b;font-weight:bold}
+main{padding:18px}.page{display:none}.page.on{display:block}.card{background:white;border:1px solid #e6f0eb;border-radius:18px;padding:18px;margin-bottom:15px;box-shadow:0 5px 18px #00000008}
+.hero{background:linear-gradient(135deg,#e7f8ee,#fff);border:0}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.stat{background:#f7fbf9;border:1px solid var(--line);padding:15px;border-radius:14px}.stat b{display:block;font-size:25px;color:#176b4b;margin-top:5px}
+label{display:block;font-size:13px;font-weight:bold;margin:10px 0 5px}input,select,textarea{width:100%;padding:11px;border:1px solid #d5e4dc;border-radius:10px;background:white;color:var(--text)}textarea{min-height:80px}
+.btn{border:0;background:var(--g);color:white;font-weight:bold;border-radius:10px;padding:11px 14px;margin-top:11px;cursor:pointer}.danger{background:#fbe8e7;color:#a33b37}.secondary{background:#e8f6ef;color:#176b4b}
+.item{border:1px solid var(--line);border-radius:14px;padding:13px;margin-top:10px}.top{display:flex;justify-content:space-between;gap:8px}.muted{color:var(--muted);font-size:13px}.tag{display:inline-block;background:#e8f6ef;color:#176b4b;border-radius:20px;padding:4px 8px;font-size:12px;margin:3px}
+.photo{display:none;width:100%;max-height:220px;object-fit:cover;border-radius:12px;margin-top:8px}.hide{display:none!important}.empty{text-align:center;color:var(--muted);padding:18px}
+@media(max-width:700px){.grid,.grid2{grid-template-columns:1fr}.head button{display:none}main{padding:12px}}
+</style></head><body>
+<header><div class="head"><div><h1>🌱 My Health</h1><p>Food · Nutrition · Medicine · Meal Plan</p></div></div>
+<nav><button class="on" data-p="home">Home</button><button data-p="food">Food</button><button data-p="medicine">Medicine</button><button data-p="plan">Meal Plan</button><button data-p="settings">Settings</button></nav></header>
+
+<main>
+<section id="home" class="page on">
+<div class="card hero"><h2>Welcome to My Health 🌱</h2><p class="muted">Record your food, medicine and meal plans in one simple place.</p>
+<button class="btn" onclick="go('food')">🍎 Add Food</button> <button class="btn" onclick="go('medicine')">💊 Add Medicine</button> <button class="btn" onclick="go('plan')">📅 Meal Plan</button></div>
+<div class="grid"><div class="stat">Food records<b id="sf">0</b></div><div class="stat">Medicines<b id="sm">0</b></div><div class="stat">Meal plans<b id="sp">0</b></div></div>
+<div class="card"><h3>Today's Medicine</h3><div id="today"></div></div>
+</section>
+
+<section id="food" class="page"><div class="card"><h2>🍎 Food</h2><p class="muted">You can record food without knowing calories or grams.</p>
+<div class="grid2"><div><label>Food / drink</label><input id="fn" placeholder="e.g. Fried rice"></div><div><label>Date & time</label><input id="fd" type="datetime-local"></div></div>
+<label>Amount / portion</label><input id="fa" placeholder="1 plate, 150g, 2 pieces, half bowl...">
+<label>Nutrition</label><select id="mode" onchange="nutrition()"><option value="simple">Just record my food</option><option value="cal">I know the calories</option><option value="detail">I know nutrition details</option></select>
+<div id="calbox" class="hide"><label>Calories (optional)</label><input id="cal" type="number" placeholder="e.g. 450"></div>
+<div id="detailbox" class="hide"><div class="grid"><div><label>Protein (g)</label><input id="pro" type="number"></div><div><label>Carbs (g)</label><input id="carb" type="number"></div><div><label>Fat (g)</label><input id="fat" type="number"></div></div></div>
+<label>Food photo (optional)</label><input id="photo" type="file" accept="image/*" capture="environment" onchange="preview()"><img id="pic" class="photo">
+<label>Note</label><textarea id="fnote" placeholder="Anything you want to remember"></textarea><button class="btn" onclick="addFood()">Save Food</button></div>
+<div class="card"><h3>Food History</h3><div id="foods"></div></div></section>
+
+<section id="medicine" class="page"><div class="card"><h2>💊 Medicine</h2><p class="muted">Set your own medicine time and dates.</p>
+<div class="grid2"><div><label>Medicine name</label><input id="mn" placeholder="e.g. Vitamin C"></div><div><label>Dose</label><input id="mdose" placeholder="1 tablet"></div></div>
+<div class="grid2"><div><label>Frequency</label><select id="mf"><option>Once a day</option><option>Twice a day</option><option>Three times a day</option><option>As needed</option></select></div><div><label>Reminder time</label><input id="mt" type="time"></div></div>
+<div class="grid2"><div><label>Start date</label><input id="ms" type="date"></div><div><label>End date</label><input id="me" type="date"></div></div>
+<label>Note</label><input id="mnote" placeholder="After food">
+<button class="btn" onclick="addMed()">Save Medicine</button>
+<button class="btn secondary" onclick="notify()">Allow Browser Notifications</button><button class="btn secondary" onclick="test()">Test Reminder</button>
+<div id="nstatus" class="muted"></div></div><div class="card"><h3>My Medicines</h3><div id="meds"></div></div></section>
+
+<section id="plan" class="page"><div class="card"><h2>📅 Meal Plan</h2><p class="muted">Meal Plan is what you plan to eat; Food is what you actually ate.</p>
+<div class="grid2"><div><label>Date</label><input id="pd" type="date"></div><div><label>Meal</label><select id="pm"><option>Breakfast</option><option>Lunch</option><option>Dinner</option><option>Snack</option></select></div></div>
+<label>Planned food</label><input id="pf" placeholder="e.g. Chicken rice"><label>Amount</label><input id="pa" placeholder="e.g. 1 bowl"><label>Note</label><input id="pn"><button class="btn" onclick="addPlan()">Save Meal Plan</button></div>
+<div class="card"><h3>My Meal Plans</h3><div id="plans"></div></div></section>
+
+<section id="settings" class="page"><div class="card"><h2>⚙️ Settings</h2><label>Name / nickname</label><input id="user"><button class="btn" onclick="saveSet()">Save Settings</button></div>
+<div class="card"><h3>Reminder note</h3><p class="muted">This single-file version gives browser reminders while the page is running. For reliable background phone notifications when the phone is locked, the next version should connect the Medicine section to Supabase Web Push.</p></div></section>
+</main>
+
+<script>
+const K={f:'mh_f',m:'mh_m',p:'mh_p',s:'mh_s'};let F=read(K.f,[]),M=read(K.m,[]),P=read(K.p,[]),S=read(K.s,{});
+const $=x=>document.getElementById(x);const read=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}};const save=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function now(){let d=new Date(),p=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes())}
+function today(){return now().slice(0,10)}
+function go(id){document.querySelectorAll('.page').forEach(x=>x.classList.remove('on'));$(id).classList.add('on');document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x.dataset.p==id));render()}
+document.querySelectorAll('nav button').forEach(x=>x.onclick=()=>go(x.dataset.p));
+function nutrition(){$('calbox').classList.toggle('hide',$('mode').value==='simple');$('detailbox').classList.toggle('hide',$('mode').value!=='detail')}
+let img='';
+function preview(){let f=$('photo').files[0];if(!f)return;let r=new FileReader();r.onload=()=>{img=r.result;$('pic').src=img;$('pic').style.display='block'};r.readAsDataURL(f)}
+function addFood(){if(!$('fn').value.trim())return alert('Enter the food name.');F.unshift({id:Date.now(),n:$('fn').value,t:$('fd').value||now(),a:$('fa').value,mode:$('mode').value,c:$('cal').value,pro:$('pro').value,carb:$('carb').value,fat:$('fat').value,img,note:$('fnote').value});save(K.f,F);['fn','fa','cal','pro','carb','fat','fnote'].forEach(x=>$(x).value='');$('photo').value='';img='';$('pic').style.display='none';render();alert('Food saved.')}
+function delF(id){if(confirm('Delete this food record?')){F=F.filter(x=>x.id!=id);save(K.f,F);render()}}
+function addMed(){if(!$('mn').value||!$('mt').value||!$('ms').value)return alert('Enter medicine name, time and start date.');M.push({id:Date.now(),n:$('mn').value,dose:$('mdose').value,f:$('mf').value,t:$('mt').value,s:$('ms').value,e:$('me').value,note:$('mnote').value});save(K.m,M);['mn','mdose','mt','ms','me','mnote'].forEach(x=>$(x).value='');render();alert('Medicine saved.')}
+function delM(id){if(confirm('Delete this medicine?')){M=M.filter(x=>x.id!=id);save(K.m,M);render()}}
+async function notify(){if(!('Notification'in window))return $('nstatus').textContent='Notifications are not supported.';let p=await Notification.requestPermission();$('nstatus').textContent=p==='granted'?'✅ Notifications allowed.':'⚠️ Notifications not allowed.'}
+async function test(){if(!('Notification'in window))return alert('Notifications are not supported.');if(Notification.permission!=='granted')await notify();if(Notification.permission==='granted')new Notification('💊 My Health Reminder',{body:'This is a test reminder.'})}
+let last='';
+setInterval(()=>{let d=new Date(),t=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'),key=today()+t;if(key==last)return;last=key;M.filter(x=>x.t==t&&x.s<=today()&&(!x.e||x.e>=today())).forEach(x=>{let text='Time to take '+x.n+(x.dose?' — '+x.dose:'');if('Notification'in window&&Notification.permission==='granted')new Notification('💊 My Health Reminder',{body:text});alert(text)})},15000);
+function addPlan(){if(!$('pd').value||!$('pf').value)return alert('Enter date and planned food.');P.push({id:Date.now(),d:$('pd').value,m:$('pm').value,f:$('pf').value,a:$('pa').value,n:$('pn').value});P.sort((a,b)=>a.d.localeCompare(b.d));save(K.p,P);['pf','pa','pn'].forEach(x=>$(x).value='');render();alert('Meal plan saved.')}
+function delP(id){if(confirm('Delete this meal plan?')){P=P.filter(x=>x.id!=id);save(K.p,P);render()}}
+function saveSet(){S.name=$('user').value;save(K.s,S);alert('Settings saved.')}
+function render(){
+$('sf').textContent=F.length;$('sm').textContent=M.length;$('sp').textContent=P.length;$('fd').value=$('fd').value||now();$('ms').value=$('ms').value||today();$('pd').value=$('pd').value||today();$('user').value=S.name||'';
+$('foods').innerHTML=F.length?F.map(x=>'<div class="item"><div class="top"><div><b>'+esc(x.n)+'</b><div class="muted">'+esc(x.t.replace('T',' '))+'</div></div><button class="btn danger" onclick="delF('+x.id+')">Delete</button></div><p>'+esc(x.a||'Amount not specified')+'</p>'+(x.c?'<span class="tag">🔥 '+esc(x.c)+' kcal</span>':'')+(x.pro?'<span class="tag">Protein '+esc(x.pro)+'g</span>':'')+(x.carb?'<span class="tag">Carbs '+esc(x.carb)+'g</span>':'')+(x.fat?'<span class="tag">Fat '+esc(x.fat)+'g</span>':'')+(x.img?'<img class="photo" style="display:block" src="'+x.img+'">':'')+(x.note?'<p class="muted">'+esc(x.note)+'</p>':'')+'</div>').join(''):'<div class="empty">No food records yet.</div>';
+$('meds').innerHTML=M.length?M.map(x=>'<div class="item"><div class="top"><div><b>💊 '+esc(x.n)+'</b><div class="muted">'+esc(x.dose||'Dose not specified')+' · ⏰ '+esc(x.t)+'</div></div><button class="btn danger" onclick="delM('+x.id+')">Delete</button></div><p class="muted">'+esc(x.f)+' · '+esc(x.s)+(x.e?' → '+esc(x.e):'')+'</p>'+(x.note?'<p>'+esc(x.note)+'</p>':'')+'</div>').join(''):'<div class="empty">No medicines yet.</div>';
+$('plans').innerHTML=P.length?P.map(x=>'<div class="item"><div class="top"><div><b>'+esc(x.m)+' · '+esc(x.f)+'</b><div class="muted">'+esc(x.d)+'</div></div><button class="btn danger" onclick="delP('+x.id+')">Delete</button></div><p>'+esc(x.a||'Amount not specified')+'</p>'+(x.n?'<p class="muted">'+esc(x.n)+'</p>':'')+'</div>').join(''):'<div class="empty">No meal plans yet.</div>';
+let a=M.filter(x=>x.s<=today()&&(!x.e||x.e>=today()));$('today').innerHTML=a.length?a.sort((x,y)=>x.t.localeCompare(y.t)).map(x=>'<div class="item"><b>💊 '+esc(x.n)+'</b><div class="muted">⏰ '+esc(x.t)+' · '+esc(x.dose||'Dose not specified')+'</div></div>').join(''):'<div class="empty">No medicine reminders today.</div>';
+}
+render();
+</script></body></html>
