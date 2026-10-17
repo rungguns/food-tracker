@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Health - Meal Plan</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f3f8f7;
+    color: #173b37;
+  }
+  header {
+    background: linear-gradient(90deg, #145347, #279b88);
+    color: white;
+    padding: 20px 7%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .brand { font-size: 24px; font-weight: 700; }
+  .subtitle { font-size: 13px; opacity: .85; margin-top: 4px; }
+  .logout {
+    background: white;
+    color: #176052;
+    border: 0;
+    border-radius: 10px;
+    padding: 10px 16px;
+    cursor: pointer;
+  }
+  nav {
+    max-width: 920px;
+    margin: 20px auto 10px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  nav button {
+    border: 1px solid #e0e9e7;
+    background: white;
+    border-radius: 11px;
+    padding: 10px 16px;
+    color: #244641;
+    cursor: pointer;
+  }
+  nav .active {
+    background: #2aa48f;
+    color: white;
+    border-color: #2aa48f;
+  }
+  .container { max-width: 920px; margin: auto; padding: 8px 0 40px; }
+  .card {
+    background: white;
+    border: 1px solid #e2ecea;
+    border-radius: 18px;
+    padding: 22px;
+    margin-bottom: 16px;
+    box-shadow: 0 5px 18px rgba(20,80,70,.04);
+  }
+  h1 { margin: 0 0 8px; font-size: 22px; }
+  h2 { margin: 0 0 15px; font-size: 17px; }
+  .hint { color: #6c807c; font-size: 13px; margin-bottom: 20px; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+  }
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  input, select, textarea {
+    width: 100%;
+    padding: 11px 12px;
+    border: 1px solid #d8e5e2;
+    border-radius: 10px;
+    font-size: 14px;
+    background: white;
+  }
+  textarea { min-height: 70px; resize: vertical; }
+  .full { grid-column: 1 / -1; }
+  .primary {
+    background: #2aa48f;
+    color: white;
+    border: 0;
+    padding: 11px 17px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 700;
+  }
+  .secondary {
+    background: #edf7f5;
+    color: #176052;
+    border: 1px solid #cfe4df;
+    padding: 9px 13px;
+    border-radius: 9px;
+    cursor: pointer;
+  }
+  .meal {
+    border: 1px solid #e0ebe8;
+    border-radius: 14px;
+    padding: 15px;
+    margin-bottom: 12px;
+  }
+  .meal-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .meal-title { font-weight: 700; font-size: 16px; }
+  .food-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 0;
+    border-top: 1px solid #edf2f1;
+  }
+  .food-main { flex: 1; }
+  .food-name { font-weight: 700; }
+  .food-meta { color: #71837f; font-size: 12px; margin-top: 3px; }
+  .nutrition {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 14px;
+  }
+  .pill {
+    background: #f0f7f5;
+    border-radius: 20px;
+    padding: 7px 10px;
+    font-size: 12px;
+  }
+  .empty {
+    color: #81918e;
+    text-align: center;
+    padding: 22px;
+  }
+  .danger {
+    border: 0;
+    background: transparent;
+    color: #b04b4b;
+    cursor: pointer;
+    font-size: 12px;
+  }
+  @media(max-width:700px) {
+    .container, nav { margin-left: 14px; margin-right: 14px; }
+    .grid { grid-template-columns: 1fr; }
+    .full { grid-column: auto; }
+    header { padding: 18px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="brand">🌱 My Health</div>
+    <div class="subtitle">Food · Nutrition · Diary · Medicine</div>
+  </div>
+  <button class="logout">Logout</button>
+</header>
+
+<nav>
+  <button>🏠 Home</button>
+  <button>🍽️ Food</button>
+  <button>📔 Diary</button>
+  <button>💊 Medicine</button>
+  <button class="active">🍲 Meal Plan</button>
+  <button>⚙️ Settings</button>
+</nav>
+
+<main class="container">
+
+  <section class="card">
+    <h1>🍲 My Meal Plan</h1>
+    <div class="hint">
+      Plan what you want to eat. You can enter the amount yourself. Nutrition information is optional.
+    </div>
+
+    <div class="grid">
+      <div>
+        <label>Date</label>
+        <input type="date" id="date">
+      </div>
+      <div>
+        <label>Meal</label>
+        <select id="meal">
+          <option>Breakfast</option>
+          <option>Lunch</option>
+          <option>Dinner</option>
+          <option>Snack</option>
+        </select>
+      </div>
+      <div>
+        <label>Food</label>
+        <input id="food" placeholder="e.g. Chicken rice">
+      </div>
+      <div>
+        <label>Amount / Portion</label>
+        <input id="amount" placeholder="e.g. 150g, 1 bowl, 2 pieces">
+      </div>
+      <div>
+        <label>Calories (optional)</label>
+        <input id="calories" type="number" min="0" placeholder="Leave blank if unknown">
+      </div>
+      <div>
+        <label>Protein g (optional)</label>
+        <input id="protein" type="number" min="0" step="0.1" placeholder="Optional">
+      </div>
+      <div>
+        <label>Carbs g (optional)</label>
+        <input id="carbs" type="number" min="0" step="0.1" placeholder="Optional">
+      </div>
+      <div>
+        <label>Fat g (optional)</label>
+        <input id="fat" type="number" min="0" step="0.1" placeholder="Optional">
+      </div>
+      <div class="full">
+        <label>Note (optional)</label>
+        <textarea id="note" placeholder="e.g. Less spicy, no sauce, homemade..."></textarea>
+      </div>
+      <div class="full">
+        <button class="primary" onclick="addFood()">＋ Add to Meal Plan</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>📅 Planned Meals</h2>
+    <div id="plans"></div>
+  </section>
+
+</main>
+
+<script>
+const KEY = "myHealthMealPlans";
+const dateInput = document.getElementById("date");
+
+function localDate() {
+  const d = new Date();
+  return d.toISOString().split("T")[0];
+}
+dateInput.value = localDate();
+
+function loadPlans() {
+  return JSON.parse(localStorage.getItem(KEY) || "[]");
+}
+
+function savePlans(plans) {
+  localStorage.setItem(KEY, JSON.stringify(plans));
+}
+
+function addFood() {
+  const food = document.getElementById("food").value.trim();
+  if (!food) {
+    alert("Please enter a food name.");
+    return;
+  }
+
+  const item = {
+    id: Date.now(),
+    date: dateInput.value,
+    meal: document.getElementById("meal").value,
+    food,
+    amount: document.getElementById("amount").value.trim(),
+    calories: document.getElementById("calories").value,
+    protein: document.getElementById("protein").value,
+    carbs: document.getElementById("carbs").value,
+    fat: document.getElementById("fat").value,
+    note: document.getElementById("note").value.trim()
+  };
+
+  const plans = loadPlans();
+  plans.push(item);
+  savePlans(plans);
+
+  document.getElementById("food").value = "";
+  document.getElementById("amount").value = "";
+  document.getElementById("calories").value = "";
+  document.getElementById("protein").value = "";
+  document.getElementById("carbs").value = "";
+  document.getElementById("fat").value = "";
+  document.getElementById("note").value = "";
+
+  render();
+}
+
+function removeFood(id) {
+  const plans = loadPlans().filter(x => x.id !== id);
+  savePlans(plans);
+  render();
+}
+
+function render() {
+  const plans = loadPlans();
+  const selectedDate = dateInput.value;
+  const dayPlans = plans.filter(x => x.date === selectedDate);
+
+  const meals = ["Breakfast", "Lunch", "Dinner", "Snack"];
+  const box = document.getElementById("plans");
+
+  if (!dayPlans.length) {
+    box.innerHTML = '<div class="empty">No meals planned for this date yet.</div>';
+    return;
+  }
+
+  let totalCal = 0, totalProtein = 0, totalCarbs = 0, totalFat = 0;
+
+  let html = "";
+
+  meals.forEach(meal => {
+    const items = dayPlans.filter(x => x.meal === meal);
+    if (!items.length) return;
+
+    html += `<div class="meal">
+      <div class="meal-head">
+        <div class="meal-title">${meal}</div>
+        <span class="pill">${items.length} item${items.length > 1 ? "s" : ""}</span>
+      </div>`;
+
+    items.forEach(x => {
+      if (x.calories) totalCal += Number(x.calories);
+      if (x.protein) totalProtein += Number(x.protein);
+      if (x.carbs) totalCarbs += Number(x.carbs);
+      if (x.fat) totalFat += Number(x.fat);
+
+      html += `<div class="food-row">
+        <div class="food-main">
+          <div class="food-name">${escapeHtml(x.food)}</div>
+          <div class="food-meta">${escapeHtml(x.amount || "Amount not specified")}</div>
+          ${x.note ? `<div class="food-meta">📝 ${escapeHtml(x.note)}</div>` : ""}
+        </div>
+        <div>
+          ${x.calories ? `<div class="food-meta">${x.calories} kcal</div>` : `<div class="food-meta">Nutrition unknown</div>`}
+          <button class="danger" onclick="removeFood(${x.id})">Delete</button>
+        </div>
+      </div>`;
+    });
+
+    html += `</div>`;
+  });
+
+  html += `<div class="nutrition">
+    <div class="pill">🔥 Calories: ${totalCal || "—"} kcal</div>
+    <div class="pill">🥩 Protein: ${totalProtein ? totalProtein.toFixed(1) : "—"} g</div>
+    <div class="pill">🍚 Carbs: ${totalCarbs ? totalCarbs.toFixed(1) : "—"} g</div>
+    <div class="pill">🥑 Fat: ${totalFat ? totalFat.toFixed(1) : "—"} g</div>
+  </div>`;
+
+  box.innerHTML = html;
+}
+
+function escapeHtml(value) {
+  return value.replace(/[&<>"']/g, c => ({
+    "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#039;"
+  }[c]));
+}
+
+dateInput.addEventListener("change", render);
+render();
+</script>
+
+</body>
+</html>
